@@ -1,26 +1,104 @@
 @import "tailwindcss";
 
-:root {
-  --background: #ffffff;
-  --foreground: #171717;
-}
+/*
+ * Design tokens. Every color lives here once: Tailwind exposes each as a
+ * utility (bg-surface, text-muted, border-line...) and as a CSS variable
+ * (var(--color-surface)) for inline styles and SVG.
+ */
+@theme {
+  --color-bg: #07110c;
+  --color-surface: #0f1a14;
+  --color-surface-2: #0b1510;
+  --color-line: #1e2b23;
+  --color-line-strong: #2a3a30;
 
-@theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
-}
+  --color-text: #f2f5f1;
+  --color-muted: #a9b6ad;
+  --color-dim: #8c9a90;
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
+  --color-accent: #3ddc84;
+  --color-accent-ink: #04140b;
+  --color-flood: #f5e6a8;
+
+  /* Rating colors for the scout report */
+  --color-good: #3ddc84;
+  --color-ok: #f2cc5b;
+  --color-low: #f59b4c;
+
+  --color-bronze: #c68a5c;
+  --color-silver: #d9dee3;
+  --color-gold: #f6da7e;
+  --color-special: #9a7bff;
+
+  --radius-card: 20px;
+  --radius-field: 16px;
+
+  --animate-float: float 6s ease-in-out infinite;
+  --animate-shine: shine 3s ease-in-out infinite;
+
+  @keyframes float {
+    0%,
+    100% {
+      translate: 0 0;
+    }
+    50% {
+      translate: 0 -10px;
+    }
+  }
+
+  @keyframes shine {
+    0% {
+      background-position: 150% 0;
+    }
+    60%,
+    100% {
+      background-position: -50% 0;
+    }
   }
 }
 
+@theme inline {
+  --font-display: var(--font-barlow);
+  --font-sans: var(--font-inter);
+  --font-mono: var(--font-jetbrains);
+}
+
+/* Small uppercase mono label used across the UI */
+@utility mono-label {
+  font-family: var(--font-mono);
+  font-weight: 500;
+  text-transform: uppercase;
+  letter-spacing: 0.13em;
+}
+
+/* Uppercase condensed heading/number style */
+@utility display {
+  font-family: var(--font-display);
+  text-transform: uppercase;
+  line-height: 0.9;
+}
+
+html {
+  color-scheme: dark;
+}
+
 body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  background: var(--color-bg);
+  color: var(--color-text);
+  font-family: var(--font-sans), system-ui, sans-serif;
+}
+
+:focus-visible {
+  outline: 2px solid var(--color-accent);
+  outline-offset: 2px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
 }
