@@ -14,7 +14,7 @@ export default function Home() {
       <LandingNav />
       <main className="flex-1">
         <Hero />
-        {/* Cached for 24h, so it's part of the static shell; the fallback only shows if the cache is cold. */}
+        {/* Cached for 24h and part of the static shell when it loads; if it fails, it retries at request time. */}
         <Suspense fallback={null}>
           <LedTicker />
         </Suspense>

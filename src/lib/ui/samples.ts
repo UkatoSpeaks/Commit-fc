@@ -11,6 +11,7 @@ function fakeGrid(seed: number): number[] {
 export const SAMPLE_CARDS: Record<"silver" | "gold" | "special", CardData> = {
   silver: {
     name: "Mehta",
+    login: "mehta",
     role: "BACKEND",
     pitch: "ST",
     overall: 72,
@@ -23,6 +24,7 @@ export const SAMPLE_CARDS: Record<"silver" | "gold" | "special", CardData> = {
   },
   gold: {
     name: "Sato",
+    login: "sato",
     role: "AI",
     pitch: "CAM",
     overall: 81,
@@ -35,6 +37,7 @@ export const SAMPLE_CARDS: Record<"silver" | "gold" | "special", CardData> = {
   },
   special: {
     name: "Okafor",
+    login: "okafor",
     role: "SYSTEMS",
     pitch: "CDM",
     overall: 89,

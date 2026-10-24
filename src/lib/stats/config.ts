@@ -14,9 +14,14 @@ export const PAC = {
   streakWeight: 0.3,
 } as const;
 
-export const SHO = { starsCap: 10_000 } as const;
+export const SHO = { starsCap: 150_000 } as const;
 
 export const PAS = {
+  /**
+   * With no owned repos PAS can't exceed this. The PR search also counts PRs from
+   * deleted accounts (all mapped to "ghost"), which would otherwise inflate it.
+   */
+  noReposCap: 50,
   prCap: 200,
   prWeight: 0.6,
   forksCap: 1_000,
@@ -48,6 +53,7 @@ export const PHY = {
   followersWeight: 0.25,
 } as const;
 
+/** Default overall weights. Also used for GK (Substitute). */
 export const OVERALL_WEIGHTS = {
   PAC: 0.2,
   SHO: 0.2,
@@ -56,6 +62,20 @@ export const OVERALL_WEIGHTS = {
   DEF: 0.15,
   PHY: 0.15,
 } as const;
+
+type StatWeights = Record<keyof typeof OVERALL_WEIGHTS, number>;
+
+/** Overall weights per position, like real FUT: a striker is judged on shooting, a CB on defending. */
+export const POSITION_OVERALL_WEIGHTS: Readonly<Record<"AI" | "FE" | "BE" | "OPS" | "SYS" | "MOB" | "FS" | "SUB", StatWeights>> = {
+  BE: { SHO: 0.3, PAC: 0.2, DRI: 0.15, PHY: 0.15, PAS: 0.1, DEF: 0.1 }, // ST
+  FE: { PAC: 0.3, DRI: 0.25, SHO: 0.2, PAS: 0.15, PHY: 0.05, DEF: 0.05 }, // LW
+  MOB: { PAC: 0.3, DRI: 0.25, SHO: 0.2, PAS: 0.15, PHY: 0.05, DEF: 0.05 }, // RW
+  AI: { SHO: 0.25, PAS: 0.25, DRI: 0.2, PAC: 0.15, PHY: 0.1, DEF: 0.05 }, // CAM
+  FS: { PAS: 0.25, DRI: 0.2, PAC: 0.15, SHO: 0.15, DEF: 0.15, PHY: 0.1 }, // CM
+  SYS: { DEF: 0.3, PAS: 0.2, PHY: 0.2, SHO: 0.15, PAC: 0.1, DRI: 0.05 }, // CDM
+  OPS: { DEF: 0.35, PHY: 0.25, PAS: 0.15, PAC: 0.1, SHO: 0.1, DRI: 0.05 }, // CB
+  SUB: OVERALL_WEIGHTS, // GK
+};
 
 /** Checked top-down; first match wins. */
 export const TIERS = [

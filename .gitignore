@@ -40,3 +40,6 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+# calibration snapshot (raw GitHub data)
+scripts/.calibration-profiles.json

@@ -54,12 +54,35 @@ describe("detectPosition: edge cases", () => {
     expect(p).toMatchObject({ code: "FE", label: "Frontend LW" });
   });
 
-  it("Python dev with one huge notebook but mostly Go is BE ST", () => {
+  it("one huge notebook repo doesn't outweigh several Go repos", () => {
     const p = positionOf(
-      repo("analysis", { "Jupyter Notebook": 5_000_000, Python: 200_000 }),
-      repo("service", { Go: 1_000_000 }),
+      repo("analysis", { "Jupyter Notebook": 50_000_000, Python: 200_000 }),
+      repo("service", { Go: 100_000 }),
+      repo("cli", { Go: 50_000 }),
     );
     expect(p).toMatchObject({ code: "BE", label: "Backend ST" });
+  });
+
+  it("karpathy-like: one huge generated-HTML repo + many Python/Jupyter repos is AI CAM", () => {
+    const p = positionOf(
+      repo("jobs", { HTML: 43_000_000, Python: 20_000 }, 2_000),
+      repo("nanoGPT", { Python: 30_000 }, 40_000),
+      repo("micrograd", { "Jupyter Notebook": 300_000, Python: 9_000 }, 12_000),
+      repo("minGPT", { Python: 25_000 }, 23_000),
+      repo("llm.c", { Cuda: 400_000, C: 200_000, Python: 80_000 }, 28_000),
+      repo("nn-zero-to-hero", { "Jupyter Notebook": 2_000_000 }, 15_000),
+      repo("char-rnn", { Lua: 30_000 }, 11_000),
+      repo("convnetjs", { JavaScript: 900_000, HTML: 100_000 }, 11_000),
+      repo("minbpe", { Python: 20_000 }, 9_000),
+      repo("ulogme", { JavaScript: 60_000, Python: 20_000, HTML: 10_000 }, 1_000),
+    );
+    expect(p).toMatchObject({ code: "AI", label: "AI CAM" });
+  });
+
+  it("a starred repo counts more than an unstarred one", () => {
+    const p = positionOf(repo("popular", { Go: 1_000 }, 10_000), repo("toy-a", { Python: 1_000 }), repo("toy-b", { Python: 1_000 }));
+    // Go: 1 + log10(10001) ≈ 5 vs Python: 2
+    expect(p.code).toBe("BE");
   });
 
   it("top group wins when under 50% and fewer than 3 groups reach 15%", () => {

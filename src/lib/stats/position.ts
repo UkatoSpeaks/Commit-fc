@@ -32,8 +32,8 @@ export function groupShares(shares: readonly LanguageShare[]): Partial<Record<Gr
   for (const s of shares) {
     const group = groupFor(s.name, kotlinIsMobile);
     if (!group) continue;
-    bytes[group] = (bytes[group] ?? 0) + s.bytes;
-    total += s.bytes;
+    bytes[group] = (bytes[group] ?? 0) + s.weight;
+    total += s.weight;
   }
   if (total === 0) return {};
 

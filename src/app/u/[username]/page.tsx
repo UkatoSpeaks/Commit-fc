@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { Suspense } from "react";
 import { RevealFallback } from "@/components/reveal/SealedPack";
 import { getPlayer } from "@/lib/player";
+import { aOrAn } from "@/lib/ui/grammar";
 import { PlayerView } from "./PlayerView";
 
 // generateMetadata and the page both call getPlayer(); React cache() makes that one call per request.
@@ -15,7 +16,7 @@ export async function generateMetadata({ params }: PageProps<"/u/[username]">): 
   const title = `${player.profile.login} · ${player.overall} ${player.position.pitch} | Commit FC`;
   return {
     title: { absolute: title },
-    description: `${player.profile.login} is a ${player.overall}-rated ${player.position.label} on Commit FC.`,
+    description: `${player.profile.login} is ${aOrAn(player.overall)} ${player.overall}-rated ${player.position.label} on Commit FC.`,
   };
 }
 

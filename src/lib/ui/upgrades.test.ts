@@ -37,7 +37,7 @@ describe("suggestUpgrades", () => {
 
   it("never suggests a stat at or above the ceiling", () => {
     const profile = makeProfile({
-      repos: [repo("big", { Go: 1000 }, 20_000, 2_000)],
+      repos: [repo("big", { Go: 1000 }, 200_000, 2_000)],
       externalPRs: { opened: 500, merged: 400 },
     });
     const before = statsOf(profile);
@@ -55,7 +55,7 @@ describe("suggestUpgrades", () => {
       followers: 10_000,
       publicRepos: 200,
       repos: [
-        repo("a", Object.fromEntries(["Go", "Rust", "C", "C++", "Python", "TypeScript", "Java", "Ruby", "PHP", "Swift"].map((l) => [l, 1000])), 20_000, 2_000),
+        repo("a", Object.fromEntries(["Go", "Rust", "C", "C++", "Python", "TypeScript", "Java", "Ruby", "PHP", "Swift"].map((l) => [l, 1000])), 200_000, 2_000),
       ],
       contributions: { total: 5_000, calendar: calendar(new Array(365).fill(20)), issues: 300, prReviews: 300 },
       externalPRs: { opened: 500, merged: 400 },

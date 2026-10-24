@@ -2,7 +2,7 @@ import "server-only";
 
 import { connection } from "next/server";
 import { cache } from "react";
-import { playerCache } from "@/lib/cache";
+import { profileCache, profileCacheKey } from "@/lib/cache";
 import { fetchGitHubProfile, GitHubError, isValidUsername } from "@/lib/github";
 import { buildPlayer } from "@/lib/stats";
 import type { PlayerResult } from "./types";
@@ -22,14 +22,15 @@ export async function loadPlayer(username: string): Promise<PlayerResult> {
     };
   }
 
-  const key = `player:${username.toLowerCase()}`;
-  const cached = await playerCache.get(key);
-  if (cached) return { ok: true, player: cached, cacheHit: true };
+  // The raw profile is cached; rating it is pure and cheap, so it runs every time.
+  const key = profileCacheKey(username);
+  const cached = await profileCache.get(key);
+  if (cached) return { ok: true, player: buildPlayer(cached), cacheHit: true };
 
   try {
-    const player = buildPlayer(await fetchGitHubProfile(username));
-    await playerCache.set(key, player);
-    return { ok: true, player, cacheHit: false };
+    const profile = await fetchGitHubProfile(username);
+    await profileCache.set(key, profile);
+    return { ok: true, player: buildPlayer(profile), cacheHit: false };
   } catch (err) {
     if (err instanceof GitHubError) {
       return {

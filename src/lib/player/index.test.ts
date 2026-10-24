@@ -12,13 +12,13 @@ vi.mock("@/lib/github", async () => {
 });
 
 const { getPlayer } = await import("./index");
-const { playerCache } = await import("@/lib/cache");
+const { profileCache, profileCacheKey } = await import("@/lib/cache");
 const { GitHubError } = await import("@/lib/github/errors");
 
 describe("getPlayer", () => {
   beforeEach(async () => {
     fetchGitHubProfile.mockReset();
-    await playerCache.delete("player:octocat");
+    await profileCache.delete(profileCacheKey("octocat"));
   });
 
   it("rejects invalid usernames without calling GitHub", async () => {
@@ -37,6 +37,15 @@ describe("getPlayer", () => {
     const c = await getPlayer("octocat");
     expect(c).toMatchObject({ ok: true, cacheHit: true });
     expect(fetchGitHubProfile).toHaveBeenCalledTimes(1);
+  });
+
+  it("caches the raw profile under profile:v1 and rates it on every read", async () => {
+    const profile = makeProfile({ login: "octocat", followers: 42 });
+    await profileCache.set("profile:v1:octocat", profile);
+    const r = await getPlayer("OctoCat");
+    expect(fetchGitHubProfile).not.toHaveBeenCalled();
+    expect(r).toMatchObject({ ok: true, cacheHit: true, player: { profile: { followers: 42 } } });
+    if (r.ok) expect(r.player.overall).toBeGreaterThanOrEqual(40);
   });
 
   it("returns typed GitHub errors with retryAfter", async () => {

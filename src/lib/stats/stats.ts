@@ -1,7 +1,8 @@
 import type { GitHubProfile } from "@/lib/github/types";
-import { DEF, DRI, OVERALL_WEIGHTS, PAC, PAS, PHY, RATING, SHO } from "./config";
+import { DEF, DRI, OVERALL_WEIGHTS, PAC, PAS, PHY, POSITION_OVERALL_WEIGHTS, RATING, SHO } from "./config";
 import type { LanguageShare } from "./languages";
 import { blend, clamp, logRating } from "./normalize";
+import type { PositionCode } from "./position";
 import { calculateStreaks, recentContributions } from "./streak";
 
 export type StatKey = keyof typeof OVERALL_WEIGHTS;
@@ -24,13 +25,14 @@ export function shooting(profile: GitHubProfile): number {
   return logRating(stars, SHO.starsCap);
 }
 
-/** Collaboration: PRs to others' repos + forks received. */
+/** Collaboration: PRs to others' repos + forks received. Capped when the user owns no repos. */
 export function passing(profile: GitHubProfile): number {
   const forks = profile.repos.reduce((sum, r) => sum + r.forks, 0);
-  return blend([
+  const rating = blend([
     { rating: logRating(profile.externalPRs.opened, PAS.prCap), weight: PAS.prWeight },
     { rating: logRating(forks, PAS.forksCap), weight: PAS.forksWeight },
   ]);
+  return profile.repos.length === 0 ? Math.min(rating, PAS.noReposCap) : rating;
 }
 
 /** Versatility: languages above the min share, linear scale. */
@@ -74,8 +76,9 @@ export function computeStats(profile: GitHubProfile, shares: readonly LanguageSh
   };
 }
 
-/** Weighted average of the (rounded) card stats. */
-export function computeOverall(stats: Stats): number {
+/** Weighted average of the (rounded) card stats, using the position's weights. */
+export function computeOverall(stats: Stats, position: PositionCode): number {
+  const weights = POSITION_OVERALL_WEIGHTS[position];
   const keys = Object.keys(OVERALL_WEIGHTS) as StatKey[];
-  return Math.round(blend(keys.map((k) => ({ rating: stats[k], weight: OVERALL_WEIGHTS[k] }))));
+  return Math.round(blend(keys.map((k) => ({ rating: stats[k], weight: weights[k] }))));
 }

@@ -33,15 +33,41 @@
   --radius-card: 20px;
   --radius-field: 16px;
 
-  --animate-shine: shine 3s ease-in-out infinite;
+  --animate-shine: shine 3.2s ease-in-out infinite;
+  --animate-twinkle: twinkle 2.4s ease-in-out infinite;
+  --animate-report-in: report-in 0.55s cubic-bezier(0.2, 0.7, 0.2, 1) both;
 
+  /* Gold sweep: moves the sheen with transform only (no repaints). */
   @keyframes shine {
     0% {
-      background-position: 150% 0;
+      transform: translateX(-70%);
     }
     60%,
     100% {
-      background-position: -50% 0;
+      transform: translateX(70%);
+    }
+  }
+
+  @keyframes twinkle {
+    0%,
+    100% {
+      opacity: 0.15;
+      transform: scale(0.6);
+    }
+    50% {
+      opacity: 1;
+      transform: scale(1.15);
+    }
+  }
+
+  @keyframes report-in {
+    from {
+      opacity: 0;
+      transform: translateY(16px);
+    }
+    to {
+      opacity: 1;
+      transform: none;
     }
   }
 }
@@ -142,4 +168,20 @@ body {
 
 .wipe-dot {
   animation: wipe-dot 1.2s infinite ease-in-out;
+}
+
+/*
+ * Card thickness: a copy of the shield just behind the face, in the tier's edge color,
+ * nudged 3px toward the far side (away from the pointer: the side that tilts back).
+ * It only shows once the tilt passes ~6deg (--tilt 0.5 of the 12deg max).
+ */
+.card-stage::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  clip-path: polygon(42px 0px, 258px 0px, 300px 30.8px, 300px 378.4px, 150px 440px, 0px 378.4px, 0px 30.8px);
+  background: var(--card-edge);
+  transform: translateZ(-1px) translate(calc(var(--tx, 0) * -3px), calc(var(--ty, 0) * -3px));
+  opacity: clamp(0, calc((var(--tilt, 0) - 0.5) * 8), 1);
+  pointer-events: none;
 }

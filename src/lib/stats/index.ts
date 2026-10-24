@@ -18,12 +18,13 @@ export interface Player {
 export function buildPlayer(profile: GitHubProfile, now: Date = new Date()): Player {
   const shares = languageShares(profile.repos);
   const stats = computeStats(profile, shares, now);
-  const overall = computeOverall(stats);
+  const position = detectPosition(shares);
+  const overall = computeOverall(stats, position.code);
   return {
     profile,
     stats,
     overall,
-    position: detectPosition(shares),
+    position,
     tier: tierFor(overall),
     extras: computeExtras(profile, shares),
   };

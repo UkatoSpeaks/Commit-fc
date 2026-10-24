@@ -54,7 +54,7 @@ const CUSTOM: Record<CustomFlag, () => ReactNode> = {
       <rect width={13} height={(7 * 20) / 13} fill="#3C3B6E" />
     </>
   ),
-  GB: () => <UnionJack />,
+  GB: () => UnionJack({}),
   IN: () => (
     <>
       {stripes(["#FF9933", "#FFFFFF", "#138808"], undefined, false)}
@@ -127,7 +127,7 @@ const CUSTOM: Record<CustomFlag, () => ReactNode> = {
   AU: () => (
     <>
       <rect width={30} height={20} fill="#012169" />
-      <UnionJack w={15} h={10} />
+      {UnionJack({ w: 15, h: 10 })}
       <polygon points={star(7.5, 15, 2.4)} fill="#FFFFFF" />
       {[
         [22, 4],
@@ -142,7 +142,7 @@ const CUSTOM: Record<CustomFlag, () => ReactNode> = {
   NZ: () => (
     <>
       <rect width={30} height={20} fill="#012169" />
-      <UnionJack w={15} h={10} />
+      {UnionJack({ w: 15, h: 10 })}
       {[
         [22, 4],
         [26, 9],
@@ -204,7 +204,8 @@ const CUSTOM: Record<CustomFlag, () => ReactNode> = {
   ),
 };
 
-function Shape({ flag }: { flag: FlagShape }) {
+// Called as plain functions (not <Components>): Satori only accepts SVG elements inside <svg>.
+function shape(flag: FlagShape): ReactNode {
   switch (flag.kind) {
     case "h":
       return <>{stripes(flag.colors, flag.weights, false)}</>;
@@ -253,16 +254,23 @@ export function Flag({ country, width = 34, height = 22, radius = 3, className }
       role="img"
       aria-label={country ? `Flag of ${country.name}` : "Unknown nation"}
     >
-      <svg viewBox="0 0 30 20" width={width} height={height} preserveAspectRatio="none" aria-hidden="true">
-        {country ? (
-          <Shape flag={country.flag} />
-        ) : (
-          <>
-            <rect width={30} height={20} fill="#4A5650" />
-            <rect y={8} width={30} height={4} fill="#65726B" />
-          </>
-        )}
-      </svg>
+      <FlagArt country={country} width={width} height={height} />
     </span>
+  );
+}
+
+/** Just the flag drawing, no wrapper. Plain SVG, so it also renders in image exports. */
+export function FlagArt({ country, width, height }: { country: Country | null; width: number; height: number }) {
+  return (
+    <svg viewBox="0 0 30 20" width={width} height={height} preserveAspectRatio="none" aria-hidden="true">
+      {country ? (
+        shape(country.flag)
+      ) : (
+        <>
+          <rect width={30} height={20} fill="#4A5650" />
+          <rect y={8} width={30} height={4} fill="#65726B" />
+        </>
+      )}
+    </svg>
   );
 }

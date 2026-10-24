@@ -5,6 +5,8 @@ import { countryFromLocation, type Country } from "./flags";
 /** Everything the PlayerCard needs. Small, serializable, easy to hardcode for samples. */
 export interface CardData {
   name: string;
+  /** GitHub login. Seeds the card's serial number. */
+  login: string;
   /** e.g. "FRONTEND" */
   role: string;
   /** Pitch code, e.g. "LW" */
@@ -39,6 +41,7 @@ export function toCardData(player: Player): CardData {
   const { profile } = player;
   return {
     name: profile.name?.trim() || profile.login,
+    login: profile.login,
     role: roleName(player),
     pitch: player.position.pitch,
     overall: player.overall,

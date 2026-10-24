@@ -3,19 +3,34 @@ import { LANGUAGE_BYTE_WEIGHTS } from "./config";
 
 export interface LanguageShare {
   name: string;
-  /** Weighted bytes (see LANGUAGE_BYTE_WEIGHTS) */
-  bytes: number;
-  /** 0–1 share of all weighted bytes */
+  /** Summed repo weight for this language (see languageShares) */
+  weight: number;
+  /** 0–1 share of all weight */
   share: number;
 }
 
-/** Weighted byte share per language across all repos, largest first. */
+/** How much one repo counts: 1 for an unstarred repo, +1 per 10x stars. */
+export function repoWeight(stars: number): number {
+  return 1 + Math.log10(Math.max(0, stars) + 1);
+}
+
+/**
+ * Language mix across repos, largest first.
+ *
+ * Each repo's bytes are turned into shares that add up to 1 (after LANGUAGE_BYTE_WEIGHTS),
+ * then scaled by repoWeight(stars) and summed. So one huge repo (e.g. generated HTML)
+ * counts as one repo, not as most of the profile.
+ */
 export function languageShares(repos: readonly Repo[]): LanguageShare[] {
   const totals = new Map<string, number>();
   for (const repo of repos) {
-    for (const lang of repo.languages) {
-      const weighted = lang.bytes * (LANGUAGE_BYTE_WEIGHTS[lang.name] ?? 1);
-      totals.set(lang.name, (totals.get(lang.name) ?? 0) + weighted);
+    const weighted = repo.languages.map((l) => ({ name: l.name, bytes: l.bytes * (LANGUAGE_BYTE_WEIGHTS[l.name] ?? 1) }));
+    const repoBytes = weighted.reduce((sum, l) => sum + l.bytes, 0);
+    if (repoBytes <= 0) continue;
+
+    const w = repoWeight(repo.stars);
+    for (const l of weighted) {
+      totals.set(l.name, (totals.get(l.name) ?? 0) + (l.bytes / repoBytes) * w);
     }
   }
 
@@ -23,6 +38,6 @@ export function languageShares(repos: readonly Repo[]): LanguageShare[] {
   if (sum === 0) return [];
 
   return [...totals.entries()]
-    .map(([name, bytes]) => ({ name, bytes, share: bytes / sum }))
-    .sort((a, b) => b.bytes - a.bytes);
+    .map(([name, weight]) => ({ name, weight, share: weight / sum }))
+    .sort((a, b) => b.weight - a.weight);
 }

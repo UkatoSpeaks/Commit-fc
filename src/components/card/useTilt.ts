@@ -9,8 +9,9 @@ export type MotionPermission = "unsupported" | "needed" | "granted" | "denied";
 
 export interface Tilt {
   /**
-   * Put this on the card wrapper. The hook writes `--rx`/`--ry` (deg) and `--gx`/`--gy`
-   * (glare position, %) onto it, and the card reads them in CSS.
+   * Put this on the card wrapper. The hook writes `--rx`/`--ry` (deg), `--gx`/`--gy`
+   * (pointer position, %), `--tx`/`--ty` (-1..1) and `--tilt` (0..1) onto it,
+   * and the card reads them in CSS.
    */
   ref: RefObject<HTMLDivElement | null>;
   enabled: boolean;
@@ -60,6 +61,10 @@ export function useTilt(max = 12, { hoverOnly = false }: TiltOptions = {}): Tilt
         el.style.setProperty("--ry", `${(pos.x * max).toFixed(2)}deg`);
         el.style.setProperty("--gx", `${(50 + pos.x * 50).toFixed(1)}%`);
         el.style.setProperty("--gy", `${(50 + pos.y * 50).toFixed(1)}%`);
+        // Unitless copies for calc(): direction (-1..1) and strength (0..1) of the tilt.
+        el.style.setProperty("--tx", pos.x.toFixed(3));
+        el.style.setProperty("--ty", pos.y.toFixed(3));
+        el.style.setProperty("--tilt", Math.min(1, Math.max(Math.abs(pos.x), Math.abs(pos.y))).toFixed(3));
       };
       moveTo.current = {
         x: gsap.quickTo(pos, "x", { ...FOLLOW, onUpdate: apply }),
@@ -67,7 +72,7 @@ export function useTilt(max = 12, { hoverOnly = false }: TiltOptions = {}): Tilt
       };
       return () => {
         moveTo.current = null;
-        for (const prop of ["--rx", "--ry", "--gx", "--gy"]) el.style.removeProperty(prop);
+        for (const prop of ["--rx", "--ry", "--gx", "--gy", "--tx", "--ty", "--tilt"]) el.style.removeProperty(prop);
       };
     },
     { dependencies: [enabled, max] },

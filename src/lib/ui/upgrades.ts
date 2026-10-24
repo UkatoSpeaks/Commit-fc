@@ -1,6 +1,7 @@
 import type { GitHubProfile } from "@/lib/github/types";
 import type { StatKey, Stats } from "@/lib/stats";
 import { languageShares } from "@/lib/stats/languages";
+import { detectPosition } from "@/lib/stats/position";
 import { computeOverall, computeStats } from "@/lib/stats/stats";
 
 /** Stats at or above this are never suggested. */
@@ -23,7 +24,8 @@ interface Scenario {
 }
 
 const NEW_LANGUAGE_CANDIDATES = ["Rust", "Go", "TypeScript", "Python", "Kotlin", "Swift", "C++", "Elixir"];
-const NEW_LANGUAGE_SHARE = 0.06;
+/** Size of the suggested side project. Only the language mix matters, not the byte count. */
+const NEW_PROJECT_BYTES = 10_000;
 
 function pickNewLanguage(profile: GitHubProfile): string {
   const present = new Set(languageShares(profile.repos).map((s) => s.name));
@@ -59,9 +61,13 @@ export const SCENARIOS: Record<StatKey, Scenario> = {
     action: (p) => `Ship a small project in ${pickNewLanguage(p)}`,
     apply: (p) => {
       const lang = pickNewLanguage(p);
-      const total = languageShares(p.repos).reduce((sum, s) => sum + s.bytes, 0);
-      const bytes = total === 0 ? 10_000 : Math.ceil((total * NEW_LANGUAGE_SHARE) / (1 - NEW_LANGUAGE_SHARE));
-      const repo = { name: "side-project", stars: 0, forks: 0, primaryLanguage: lang, languages: [{ name: lang, bytes }] };
+      const repo = {
+        name: "side-project",
+        stars: 0,
+        forks: 0,
+        primaryLanguage: lang,
+        languages: [{ name: lang, bytes: NEW_PROJECT_BYTES }],
+      };
       return { ...p, repos: [...p.repos, repo] };
     },
   },
@@ -85,7 +91,9 @@ function statsFor(profile: GitHubProfile, now: Date): Stats {
  */
 export function suggestUpgrades(profile: GitHubProfile, now: Date, limit = MAX_UPGRADES): Upgrade[] {
   const before = statsFor(profile, now);
-  const overallFrom = computeOverall(before);
+  // Overall is scored with the player's current position weights, before and after.
+  const position = detectPosition(languageShares(profile.repos)).code;
+  const overallFrom = computeOverall(before, position);
 
   const keys = (Object.keys(SCENARIOS) as StatKey[])
     .filter((k) => before[k] < UPGRADE_CEILING)
@@ -103,7 +111,7 @@ export function suggestUpgrades(profile: GitHubProfile, now: Date, limit = MAX_U
       from: before[stat],
       to: after[stat],
       overallFrom,
-      overallTo: computeOverall(after),
+      overallTo: computeOverall(after, position),
     });
   }
   return result;

@@ -2,27 +2,43 @@ import type { Tier } from "@/lib/stats";
 
 /**
  * Every timing and intensity of the pack reveal, in one place.
- * Segment durations are in seconds and run back to back after the pack opens:
- * pack → nation → position → club → burst → card → hold.
+ * Durations are in seconds and run back to back once the pack opens:
+ *
+ *   pack → nation → hold → position → hold → club → hold → burst → card → stats → overall → end
+ *
+ * The total (see `revealDuration`) is ~2.5s bronze, ~3.5s silver, ~5s gold, ~6.5s special.
  */
 export interface TierReveal {
   /** Pack splits open, light leaks out */
   pack: number;
   /** Flag drops in, country name types in */
   nation: number;
+  nationHold: number;
   /** Position code slams in */
   position: number;
+  positionHold: number;
   /** Club badge and repo name slide up */
   club: number;
-  /** Full-screen flash in the tier color */
+  clubHold: number;
+  /** Full-screen flash in the tier color; the card arrives back-first and starts to spin */
   burst: number;
-  /** Card flips into place */
+  /** Card finishes spinning to the front and lands */
   card: number;
+  /** Each stat counts up from 0 for this long… */
+  statCount: number;
+  /** …starting this long after the previous one */
+  statStagger: number;
+  /** Overall rating slams in last */
+  overall: number;
   /** Time on the finished card before the report appears */
   hold: number;
 
-  /** Idle pack shake, degrees */
+  /** Total card rotation while it arrives (180 = one half turn, 540 = one and a half) */
+  spin: number;
+  /** Idle pack rumble, degrees */
   shake: number;
+  /** Screen shake when the overall lands, px (0 = none) */
+  slamShake: number;
   /** Peak flash opacity, 0–1 */
   flash: number;
   /** How far the burst ring grows */
@@ -32,8 +48,41 @@ export interface TierReveal {
   /** Sparkle particles around the card (0 = none) */
   sparkles: number;
   confetti: boolean;
-  /** Tier color used by the flash, glow and floodlights */
+  /** Tier color used by the seam light, flash, glow and floodlights */
   color: string;
+}
+
+/** Number of stats on the card (they count up one after another). */
+export const STAT_COUNT = 6;
+
+/** Time from the first stat starting to count to the last one finishing. */
+export function statsDuration(t: TierReveal): number {
+  return t.statCount + (STAT_COUNT - 1) * t.statStagger;
+}
+
+/** The beats in order, with their durations. Labels on the master timeline use these names. */
+export function revealBeats(t: TierReveal) {
+  return [
+    ["pack", t.pack],
+    ["nation", t.nation],
+    ["nationHold", t.nationHold],
+    ["position", t.position],
+    ["positionHold", t.positionHold],
+    ["club", t.club],
+    ["clubHold", t.clubHold],
+    ["burst", t.burst],
+    ["card", t.card],
+    ["stats", statsDuration(t)],
+    ["overall", t.overall],
+    ["hold", t.hold],
+  ] as const;
+}
+
+export type RevealBeat = ReturnType<typeof revealBeats>[number][0];
+
+/** Total reveal length from opening the pack to the report, in seconds. */
+export function revealDuration(t: TierReveal): number {
+  return revealBeats(t).reduce((sum, [, d]) => sum + d, 0);
 }
 
 export const REVEAL = {
@@ -43,26 +92,32 @@ export const REVEAL = {
   stageTimeoutMs: 300,
   /** Neutral floodlight color before the burst */
   floodColor: "#F5E6A8",
+  /** Scout report fade/slide-in after the reveal, seconds */
+  reportIn: 0.55,
   tiers: {
-    // ~3.2s: short and calm
+    // ~2.5s: quick, short holds, no frills
     bronze: {
-      pack: 0.4, nation: 0.75, position: 0.45, club: 0.4, burst: 0.2, card: 0.7, hold: 0.3,
-      shake: 1, flash: 0.22, ring: 1, rays: 0.3, sparkles: 0, confetti: false, color: "#C68A5C",
+      pack: 0.25, nation: 0.3, nationHold: 0.15, position: 0.2, positionHold: 0.15, club: 0.15, clubHold: 0.15,
+      burst: 0.15, card: 0.35, statCount: 0.12, statStagger: 0.06, overall: 0.2, hold: 0.08,
+      spin: 180, shake: 1, slamShake: 0, flash: 0.22, ring: 1, rays: 0.3, sparkles: 0, confetti: false, color: "#C68A5C",
     },
-    // ~3.7s
+    // ~3.5s
     silver: {
-      pack: 0.45, nation: 0.85, position: 0.5, club: 0.45, burst: 0.25, card: 0.8, hold: 0.4,
-      shake: 1.5, flash: 0.32, ring: 1.15, rays: 0.45, sparkles: 0, confetti: false, color: "#D9DEE3",
+      pack: 0.25, nation: 0.35, nationHold: 0.3, position: 0.25, positionHold: 0.3, club: 0.25, clubHold: 0.3,
+      burst: 0.2, card: 0.4, statCount: 0.12, statStagger: 0.07, overall: 0.25, hold: 0.15,
+      spin: 180, shake: 1.6, slamShake: 0, flash: 0.32, ring: 1.15, rays: 0.45, sparkles: 0, confetti: false, color: "#D9DEE3",
     },
-    // ~4.2s: adds sparkles
+    // ~5s: sparkles, a fuller spin and a screen shake on the slam
     gold: {
-      pack: 0.5, nation: 0.9, position: 0.55, club: 0.5, burst: 0.3, card: 0.9, hold: 0.55,
-      shake: 2, flash: 0.5, ring: 1.3, rays: 0.7, sparkles: 18, confetti: false, color: "#F6DA7E",
+      pack: 0.4, nation: 0.55, nationHold: 0.35, position: 0.35, positionHold: 0.35, club: 0.35, clubHold: 0.35,
+      burst: 0.3, card: 0.7, statCount: 0.2, statStagger: 0.075, overall: 0.4, hold: 0.35,
+      spin: 540, shake: 2.4, slamShake: 6, flash: 0.5, ring: 1.3, rays: 0.7, sparkles: 18, confetti: false, color: "#F6DA7E",
     },
-    // ~4.8s: full burst plus confetti
+    // ~6.5s: everything, plus confetti
     special: {
-      pack: 0.55, nation: 0.95, position: 0.6, club: 0.5, burst: 0.4, card: 1, hold: 0.8,
-      shake: 3, flash: 0.75, ring: 1.7, rays: 1, sparkles: 26, confetti: true, color: "#9A7BFF",
+      pack: 0.5, nation: 0.7, nationHold: 0.4, position: 0.45, positionHold: 0.4, club: 0.45, clubHold: 0.4,
+      burst: 0.45, card: 0.95, statCount: 0.25, statStagger: 0.08, overall: 0.5, hold: 0.6,
+      spin: 540, shake: 3.4, slamShake: 9, flash: 0.75, ring: 1.7, rays: 1, sparkles: 26, confetti: true, color: "#9A7BFF",
     },
   } satisfies Record<Tier, TierReveal>,
 } as const;

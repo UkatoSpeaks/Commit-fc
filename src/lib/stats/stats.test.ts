@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { calendar, makeProfile, NOW, repo, yearsAgo } from "./__fixtures__/profile";
 import { languageShares } from "./languages";
+import { POSITION_OVERALL_WEIGHTS, SHO } from "./config";
 import { logRating } from "./normalize";
 import { computeOverall, computeStats, defending, dribbling, pace, passing, physical, shooting } from "./stats";
 
@@ -33,11 +34,15 @@ describe("SHO (impact)", () => {
 
   it("sums stars across owned repos", () => {
     const p = makeProfile({ repos: [repo("a", {}, 600), repo("b", {}, 400)] });
-    expect(shooting(p)).toBeCloseTo(logRating(1000, 10_000), 10);
+    expect(shooting(p)).toBeCloseTo(logRating(1000, SHO.starsCap), 10);
   });
 
   it("caps at 99", () => {
     expect(shooting(makeProfile({ repos: [repo("huge", {}, 200_000)] }))).toBe(99);
+  });
+
+  it("does not max out at 10k stars", () => {
+    expect(shooting(makeProfile({ repos: [repo("popular", {}, 10_000)] }))).toBeLessThan(90);
   });
 });
 
@@ -49,6 +54,15 @@ describe("PAS (collaboration)", () => {
 
   it("is 40 with no collaboration", () => {
     expect(passing(empty)).toBe(40);
+  });
+
+  it("is capped at 50 when the user owns no repos (e.g. the ghost account)", () => {
+    expect(passing(makeProfile({ externalPRs: { opened: 5_000, merged: 3_000 } }))).toBe(50);
+  });
+
+  it("is not capped once the user owns a repo", () => {
+    const p = makeProfile({ externalPRs: { opened: 5_000, merged: 3_000 }, repos: [repo("a", { Go: 1 })] });
+    expect(passing(p)).toBeGreaterThan(50);
   });
 });
 
@@ -106,7 +120,7 @@ describe("computeStats / computeOverall", () => {
   it("gives a brand-new account 40 everywhere", () => {
     const stats = computeStats(empty, [], NOW);
     expect(stats).toEqual({ PAC: 40, SHO: 40, PAS: 40, DRI: 40, DEF: 40, PHY: 40 });
-    expect(computeOverall(stats)).toBe(40);
+    expect(computeOverall(stats, "SUB")).toBe(40);
   });
 
   it("returns whole-number stats", () => {
@@ -116,13 +130,32 @@ describe("computeStats / computeOverall", () => {
     }
   });
 
-  it("uses the configured weights", () => {
-    const overall = computeOverall({ PAC: 90, SHO: 80, PAS: 70, DRI: 60, DEF: 50, PHY: 40 });
+  const sample = { PAC: 90, SHO: 80, PAS: 70, DRI: 60, DEF: 50, PHY: 40 };
+
+  it("uses the default weights for GK", () => {
     // .2*90 + .2*80 + .15*(70+60+50+40) = 18 + 16 + 33 = 67
-    expect(overall).toBe(67);
+    expect(computeOverall(sample, "SUB")).toBe(67);
   });
 
-  it("is 99 when every stat is 99", () => {
-    expect(computeOverall({ PAC: 99, SHO: 99, PAS: 99, DRI: 99, DEF: 99, PHY: 99 })).toBe(99);
+  it("uses position weights", () => {
+    // ST: .3*80 + .2*90 + .15*60 + .15*40 + .1*70 + .1*50 = 24+18+9+6+7+5 = 69
+    expect(computeOverall(sample, "BE")).toBe(69);
+    // CB: .35*50 + .25*40 + .15*70 + .1*90 + .1*80 + .05*60 = 17.5+10+10.5+9+8+3 = 58
+    expect(computeOverall(sample, "OPS")).toBe(58);
+    // LW: .3*90 + .25*60 + .2*80 + .15*70 + .05*40 + .05*50 = 27+15+16+10.5+2+2.5 = 73
+    expect(computeOverall(sample, "FE")).toBe(73);
+  });
+
+  it("position weights each add up to 1", () => {
+    for (const weights of Object.values(POSITION_OVERALL_WEIGHTS)) {
+      expect(Object.values(weights).reduce((a, b) => a + b, 0)).toBeCloseTo(1, 10);
+    }
+  });
+
+  it("is 99 when every stat is 99, at every position", () => {
+    const all99 = { PAC: 99, SHO: 99, PAS: 99, DRI: 99, DEF: 99, PHY: 99 };
+    for (const code of Object.keys(POSITION_OVERALL_WEIGHTS) as (keyof typeof POSITION_OVERALL_WEIGHTS)[]) {
+      expect(computeOverall(all99, code)).toBe(99);
+    }
   });
 });

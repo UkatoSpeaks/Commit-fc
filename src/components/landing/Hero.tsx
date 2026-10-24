@@ -24,7 +24,7 @@ export function Hero() {
             <UsernameForm variant="hero" typingPlaceholder exitTransition />
           </div>
           <p data-intro="fade" className="mono-label mt-3 text-[11px] text-dim">
-            Public data only · No sign-in · Ready in ~2 seconds
+            Public data only · No sign-in · Ready in seconds
           </p>
         </div>
       </KickoffIntro>
