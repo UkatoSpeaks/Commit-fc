@@ -10,7 +10,11 @@ import type { PlayerResult } from "./types";
 // Concurrent requests for the same user share one GitHub call.
 const inflight = new Map<string, Promise<PlayerResult>>();
 
-async function load(username: string): Promise<PlayerResult> {
+/**
+ * Load without request-time APIs (no connection/cookies/headers), so it is safe inside
+ * "use cache". Most callers want getPlayer() instead.
+ */
+export async function loadPlayer(username: string): Promise<PlayerResult> {
   if (!isValidUsername(username)) {
     return {
       ok: false,
@@ -54,7 +58,7 @@ export const getPlayer = cache(async (username: string): Promise<PlayerResult> =
   const pending = inflight.get(key);
   if (pending) return pending;
 
-  const promise = load(username).finally(() => inflight.delete(key));
+  const promise = loadPlayer(username).finally(() => inflight.delete(key));
   inflight.set(key, promise);
   return promise;
 });

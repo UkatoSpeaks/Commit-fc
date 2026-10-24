@@ -3,16 +3,23 @@
 import { PlayerCard } from "@/components/card/PlayerCard";
 import { useTilt } from "@/components/card/useTilt";
 import { buttonClass } from "@/components/ui/styles";
+import type { Ref } from "react";
 import type { CardData } from "@/lib/ui/card-data";
 import { TIER_MATERIALS } from "@/lib/ui/tiers";
 import { ShareBar } from "./ShareBar";
 
-export function CardColumn({ data }: { data: CardData }) {
+interface CardColumnProps {
+  data: CardData;
+  /** Focused after the pack reveal */
+  ref?: Ref<HTMLElement>;
+}
+
+export function CardColumn({ data, ref }: CardColumnProps) {
   const tilt = useTilt();
   const glow = TIER_MATERIALS[data.tier].dot;
 
   return (
-    <div className="flex w-full flex-col items-center gap-5">
+    <section ref={ref} tabIndex={-1} aria-label="Your player card" className="flex w-full flex-col items-center gap-5 rounded-card">
       <div className="relative flex w-full justify-center py-4">
         <div
           aria-hidden="true"
@@ -32,6 +39,6 @@ export function CardColumn({ data }: { data: CardData }) {
       )}
 
       <ShareBar />
-    </div>
+    </section>
   );
 }

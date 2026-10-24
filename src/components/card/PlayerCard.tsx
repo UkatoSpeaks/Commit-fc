@@ -1,7 +1,6 @@
 "use client";
 
 import Image from "next/image";
-import { motion } from "framer-motion";
 import type { StatKey } from "@/lib/stats";
 import type { CardData } from "@/lib/ui/card-data";
 import { CARD_CLIP, CARD_H, CARD_W, TIER_MATERIALS } from "@/lib/ui/tiers";
@@ -24,6 +23,8 @@ interface PlayerCardProps {
   animated?: boolean;
   priority?: boolean;
   className?: string;
+  /** Emphasize one stat and dim the rest. `null` = highlighting on, nothing picked. */
+  highlight?: StatKey | null;
 }
 
 /** Shrink long names so they fit the plate. */
@@ -31,11 +32,30 @@ function nameSize(name: string): number {
   return Math.max(18, Math.min(32, Math.floor(250 / (name.length * 0.5))));
 }
 
-function StatColumn({ keys, stats }: { keys: readonly StatKey[]; stats: CardData["stats"] }) {
+interface StatColumnProps {
+  keys: readonly StatKey[];
+  stats: CardData["stats"];
+  highlight?: StatKey | null;
+}
+
+/** Inline styles for a stat row. Plain (no extra props) unless a highlight is in use. */
+function statRowStyle(k: StatKey, highlight: StatKey | null | undefined) {
+  const base = { display: "flex", alignItems: "baseline", gap: 8, height: 32 } as const;
+  if (highlight === undefined) return base;
+  return {
+    ...base,
+    opacity: highlight && highlight !== k ? 0.3 : 1,
+    transform: highlight === k ? "scale(1.12)" : "none",
+    transformOrigin: "center",
+    transition: "opacity 200ms ease, transform 200ms ease",
+  };
+}
+
+function StatColumn({ keys, stats, highlight }: StatColumnProps) {
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 2 }}>
       {keys.map((k) => (
-        <div key={k} style={{ display: "flex", alignItems: "baseline", gap: 8, height: 32 }}>
+        <div key={k} style={statRowStyle(k, highlight)}>
           <span style={{ fontSize: 26, fontWeight: 800, width: 32, textAlign: "right" }}>{stats[k]}</span>
           <span style={{ fontSize: 21, fontWeight: 600 }}>{k}</span>
         </div>
@@ -53,11 +73,12 @@ function AvatarFallback() {
   );
 }
 
-export function PlayerCard({ data, size = CARD_W, tilt, animated = true, priority = false, className }: PlayerCardProps) {
+export function PlayerCard({ data, size = CARD_W, tilt, animated = true, priority = false, className, highlight }: PlayerCardProps) {
   const scale = size / CARD_W;
   const height = CARD_H * scale;
   const material = TIER_MATERIALS[data.tier];
   const label = `${data.name}, ${data.overall} rated ${material.label.toLowerCase()} card, ${data.role} ${data.pitch}`;
+  const interactive = tilt?.enabled ?? false;
 
   return (
     <div
@@ -65,20 +86,21 @@ export function PlayerCard({ data, size = CARD_W, tilt, animated = true, priorit
       className={className}
       style={{ width: size, height, perspective: 1100 * scale, touchAction: tilt ? "pan-y" : undefined }}
     >
-      <motion.div
+      <div
         role="img"
         aria-label={label}
         style={{
           width: size,
           height,
-          rotateX: tilt?.enabled ? tilt.rotateX : 0,
-          rotateY: tilt?.enabled ? tilt.rotateY : 0,
+          // --rx/--ry are written by useTilt. A static card has no transform at all.
+          transform: interactive ? "rotateX(var(--rx, 0deg)) rotateY(var(--ry, 0deg))" : undefined,
+          willChange: interactive ? "transform" : undefined,
           transformStyle: "preserve-3d",
           filter: "drop-shadow(0 24px 30px rgba(0,0,0,0.5))",
         }}
       >
         <div style={{ width: size, height, clipPath: CARD_CLIP, position: "relative", overflow: "hidden" }}>
-          <TierMaterial tier={data.tier} glareX={tilt?.glareX} glareY={tilt?.glareY} animated={animated} />
+          <TierMaterial tier={data.tier} interactive={interactive} animated={animated} />
 
           <div
             className="font-display uppercase"
@@ -175,9 +197,9 @@ export function PlayerCard({ data, size = CARD_W, tilt, animated = true, priorit
 
             {/* Stats */}
             <div style={{ position: "absolute", top: 290, left: 46, right: 46, display: "flex", justifyContent: "space-between" }}>
-              <StatColumn keys={LEFT} stats={data.stats} />
+              <StatColumn keys={LEFT} stats={data.stats} highlight={highlight} />
               <span style={{ width: 1, background: "currentColor", opacity: 0.3 }} />
-              <StatColumn keys={RIGHT} stats={data.stats} />
+              <StatColumn keys={RIGHT} stats={data.stats} highlight={highlight} />
             </div>
 
             {/* Footer */}
@@ -189,7 +211,7 @@ export function PlayerCard({ data, size = CARD_W, tilt, animated = true, priorit
             </div>
           </div>
         </div>
-      </motion.div>
+      </div>
     </div>
   );
 }

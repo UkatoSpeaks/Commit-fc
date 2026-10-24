@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { Barlow_Condensed, Inter, JetBrains_Mono } from "next/font/google";
+import { INTRO_SCRIPT } from "@/lib/motion/intro";
 import "./globals.css";
 
 const barlow = Barlow_Condensed({
@@ -27,7 +28,11 @@ export const metadata: Metadata = {
 
 export default function RootLayout({ children }: LayoutProps<"/">) {
   return (
-    <html lang="en" className={`${barlow.variable} ${inter.variable} ${jetbrains.variable} h-full antialiased`}>
+    // The intro script adds a class to <html> before hydration, hence suppressHydrationWarning.
+    <html lang="en" className={`${barlow.variable} ${inter.variable} ${jetbrains.variable} h-full antialiased`} suppressHydrationWarning>
+      <head>
+        <script dangerouslySetInnerHTML={{ __html: INTRO_SCRIPT }} />
+      </head>
       <body className="flex min-h-full flex-col">{children}</body>
     </html>
   );
